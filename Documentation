@@ -1,0 +1,5 @@
+Description:
+In this project, we write our own cloud file storage service called mycloud. 
+A mycloud server that accepts requests to store a file, retrieve a file, delete a file, and list the files stored on the server.
+Four client mycloud applications that store, retrieve, delete, and list files on the mycloud server.
+To run your mycloud server, you might type mycloud_server 5678 987654, which would start your mycloud server listening for connections on the local machine at TCP port 5678, and would use 987654 as the SecretKey to prevent unauthorized access.

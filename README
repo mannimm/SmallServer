@@ -1,0 +1,15 @@
+CS485 spring2015
+Group members: Sen Lin
+
+use ‘make’ to generate a cloud server
+
+FILES:
+README	this file
+cloud.c
+cloud.h
+mcdel.c
+mcget.c
+mclist.c
+mcput.c
+mycloud_server.c
+Makefile
