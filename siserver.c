@@ -16,7 +16,7 @@ char * getStringType(int type) {
  This function writes "n" characters to the server.
  */
 
-int write_n(int fd, char *ptr, int n_bytes) {
+int write_n(int fd, (void*) ptr, int n_bytes) {
 	int n_left, n_written;
 	n_left = n_bytes;
 	while (n_left > 0) {
@@ -53,21 +53,21 @@ int read_n(int fd, char *ptr, int n_bytes) {
 
 
 int smallSet(char *MachineName, int Port, int SecretKey,
-			char *variableName, char* value, int dataLength) {
+			char *VariableName, char* Value, int dataLength) {
 
 	int socket_fd;	
 	short pad = 0;
 	char *host = (char *) calloc(1, 40);		
 
-    strncpy (host, MachineName, sizeof(MachineName));		
-    short Type = SET;
+    strcpy (host, MachineName);		
+    short int Type = SET;
     char status, server_padding[3];
 
-    char *VariableName 	= (char *) calloc(1, VAR_MAX);	// Allocate space for variable name.
-    char *Value 		= (char *) calloc(1, VALUE_MAX);	// Allocate space for value.
+    char *variableName 	= (char *) calloc(1, VAR_MAX);	// Allocate space for variable name.
+    char *value 		= (char *) calloc(1, VALUE_MAX);	// Allocate space for value.
 
-    strncpy( VariableName, variableName, sizeof(VariableName) );			// Read variable name from argument list.
-    strncpy( Value, value, sizeof(Value));
+    strcpy (variableName, VariableName);			// Read variable name from argument list.
+    strcpy (value, Value);
 
    	if ( (socket_fd = Open_clientfd(host, Port)) < 0 )	// Open connection to provided Host and Port.
 		return(-1);
@@ -78,13 +78,13 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 	Type = htons(Type);
 	write_n(socket_fd, &Type, sizeof(Type));
 	write_n(socket_fd, &pad, sizeof(pad));
-	write_n(socket_fd, (char* ) VariableName, VAR_MAX);		// Send VariableName over to the server.
+	write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
 
 	int value_size = dataLength;
 	dataLength = htons(dataLength);
 
 	write_n(socket_fd, (short *) &dataLength, sizeof( (short *) dataLength));
-	write_n(socket_fd, (char *) &Value, value_size);			// Send Value over to the server.
+	write_n(socket_fd, (char *) &value, value_size);			// Send Value over to the server.
 
 	read_n(socket_fd, (char*) &status, sizeof(status));
 	Close(socket_fd);
@@ -95,31 +95,29 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 		return ERROR;
 	}
 
-   	free(VariableName);
-   	free(Value);
+   	free(variableName);
+   	free(value);
 	return -1;
 	
 }
 	
 
 int smallGet(char *MachineName, int Port, int SecretKey,
-			char *variableName) {
+			char *VariableName) {
 
 	int socket_fd;
 	int value_size;
-	short pad = 0, Type = GET;
+	short int pad = 0, Type = GET;
 	char *host = (char *) calloc(1, 40);		
     char status, server_padding[3];
 
-    strncpy (host, MachineName, sizeof(MachineName));		
+    char *variableName 	= (char *) calloc(1, VAR_MAX);	// Allocate space for variable name.
+    char *value 		= (char *) calloc(1, VALUE_MAX);	// Allocate space for value.
 
-    char *VariableName 	= (char *) calloc(1, VAR_MAX);	// Allocate space for variable name.
-    char *Value 		= (char *) calloc(1, VALUE_MAX);	// Allocate space for value.
-
-    strncpy( VariableName, variableName, sizeof(VariableName) );			// Read variable name from argument list.
+    strcpy (variableName, VariableName);			// Read variable name from argument list.
 
 
-   	if ( (socket_fd = Open_clientfd(host, Port)) < 0 )	// Open connection to provided Host and Port.
+   	if ( (socket_fd = Open_clientfd(MachineName, Port)) < 0 )	// Open connection to provided Host and Port.
 		return(-1);
 
 	SecretKey = htonl(SecretKey);
@@ -128,13 +126,13 @@ int smallGet(char *MachineName, int Port, int SecretKey,
 	Type = htons(Type);
 	write_n(socket_fd, &Type, sizeof(Type));
 	write_n(socket_fd, &pad, sizeof(pad));
-	write_n(socket_fd, (char* ) VariableName, VAR_MAX);		// Send VariableName over to the server.
+	write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
 	
 	read_n(socket_fd, &status, sizeof(status));
 	read_n(socket_fd, &server_padding, sizeof(server_padding));
 	read_n(socket_fd, &value_size, sizeof(value_size));
 	value_size = ntohs (value_size);
-	read_n(socket_fd, (char*) &Value, value_size);
+	read_n(socket_fd, (char*) &value, value_size);
 	Close(socket_fd);
 	if (status == SUCCESS) {
 		return SUCCESS;
@@ -143,8 +141,8 @@ int smallGet(char *MachineName, int Port, int SecretKey,
 		return ERROR;
 	}
 
-   	free(VariableName);
-   	free(Value);
+   	free(variableName);
+   	free(value);
 	return -1;
 
 }
