@@ -16,7 +16,7 @@ char * getStringType(int type) {
  This function writes "n" characters to the server.
  */
 
-int write_n(int fd, (void*) ptr, int n_bytes) {
+int write_n(int fd, (void*) qptr, int n_bytes) {
 	int n_left, n_written;
 	n_left = n_bytes;
 	while (n_left > 0) {
@@ -59,31 +59,31 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 	short pad = 0;
 	char *host = (char *) calloc(1, 40);		
 
-    strcpy (host, MachineName);		
+    strncpy (host, MachineName, sizeof(host));		
     short int Type = SET;
     char status, server_padding[3];
 
     char *variableName 	= (char *) calloc(1, VAR_MAX);	// Allocate space for variable name.
     char *value 		= (char *) calloc(1, VALUE_MAX);	// Allocate space for value.
 
-    strcpy (variableName, VariableName);			// Read variable name from argument list.
-    strcpy (value, Value);
+    strncpy (variableName, VariableName, sizeof(variableName));			// Read variable name from argument list.
+    strncpy (value, Value, sizeof(value));
 
    	if ( (socket_fd = Open_clientfd(host, Port)) < 0 )	// Open connection to provided Host and Port.
 		return(-1);
 
 	SecretKey = htonl(SecretKey);
-	write_n(socket_fd, (char*) &SecretKey, 4);
+	write_n(socket_fd, (int*) &SecretKey, sizeof(int));
 	
 	Type = htons(Type);
-	write_n(socket_fd, &Type, sizeof(Type));
+	write_n(socket_fd, &Type, sizeof(short));
 	write_n(socket_fd, &pad, sizeof(pad));
 	write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
 
-	int value_size = dataLength;
-	dataLength = htons(dataLength);
+	short value_size = strlen(Value);
+	short value_size_neto = htons(value_size);
 
-	write_n(socket_fd, (short *) &dataLength, sizeof( (short *) dataLength));
+	write_n(socket_fd, &value_size_neto, sizeof(short));
 	write_n(socket_fd, (char *) &value, value_size);			// Send Value over to the server.
 
 	read_n(socket_fd, (char*) &status, sizeof(status));
@@ -106,7 +106,7 @@ int smallGet(char *MachineName, int Port, int SecretKey,
 			char *VariableName) {
 
 	int socket_fd;
-	int value_size;
+	short value_size;
 	short int pad = 0, Type = GET;
 	char *host = (char *) calloc(1, 40);		
     char status, server_padding[3];
@@ -114,36 +114,41 @@ int smallGet(char *MachineName, int Port, int SecretKey,
     char *variableName 	= (char *) calloc(1, VAR_MAX);	// Allocate space for variable name.
     char *value 		= (char *) calloc(1, VALUE_MAX);	// Allocate space for value.
 
-    strcpy (variableName, VariableName);			// Read variable name from argument list.
+    strncpy (variableName, VariableName, sizeof(variableName));			// Read variable name from argument list.
+    strncpy (host, MachineName, sizeof(host));
 
-
-   	if ( (socket_fd = Open_clientfd(MachineName, Port)) < 0 )	// Open connection to provided Host and Port.
+   	if ( (socket_fd = Open_clientfd(host, Port)) < 0 )	// Open connection to provided Host and Port.
 		return(-1);
 
 	SecretKey = htonl(SecretKey);
-	write_n(socket_fd, (char*) &SecretKey, sizeof(SecretKey));
+	write_n(socket_fd, &SecretKey, sizeof(int));
 	
 	Type = htons(Type);
-	write_n(socket_fd, &Type, sizeof(Type));
-	write_n(socket_fd, &pad, sizeof(pad));
+	write_n(socket_fd, &Type, sizeof(short));
+	write_n(socket_fd, &pad, sizeof(short));
 	write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
 	
-	read_n(socket_fd, &status, sizeof(status));
+	read_n(socket_fd, &status, sizeof(char));
 	read_n(socket_fd, &server_padding, sizeof(server_padding));
-	read_n(socket_fd, &value_size, sizeof(value_size));
-	value_size = ntohs (value_size);
-	read_n(socket_fd, (char*) &value, value_size);
-	Close(socket_fd);
-	if (status == SUCCESS) {
-		return SUCCESS;
+	
+
+	if ( status == SUCCESS) {
+		read_n(socket_fd, &value_size, sizeof(short));
+		value_size = ntohs (value_size);
+		read_n(socket_fd, (char*) &value, value_size);
+		printf("Success\n");
+	
 	} else if (status == ERROR) {
 		printf("Error\n");
-		return ERROR;
+		
 	}
+
+
+	Close(socket_fd);
 
    	free(variableName);
    	free(value);
-	return -1;
+	return status;	
 
 }
 	
