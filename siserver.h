@@ -16,13 +16,15 @@
 
 #define SET 0
 #define GET	1
+#define DIGEST 2
+#define RUN 3
 
 
 
 #define SUCCESS 0
 #define ERROR -1
 
-#define VALUE_MAX 100000
+#define VALUE_MAX 100
 #define VAR_MAX 15
 
 unsigned int key;
@@ -35,13 +37,13 @@ typedef struct {
 	unsigned int type;
 } HEADER;
 
-char * getStringType(int type);
+char * getConnectionType(int type);
 int smallSet(char *MachineName, int Port, int SecretKey, char *variableName, char* value, int dataLength);
 int smallGet(char *MachineName, int Port, int SecretKey, char *variableName);
 
 
-int write_n(int fd, char *ptr, int n_bytes);
-int read_n(int fd, char *ptr, int n_bytes);
+int write_n(int fd, void *ptr, int n_bytes);
+int read_n(int fd, void *ptr, int n_bytes);
 
 /* Our own error-handling functions */
 void unix_error(char *msg);

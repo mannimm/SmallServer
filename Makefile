@@ -1,4 +1,4 @@
-all: mysiserver_server smallSet smallGet
+all: mysiserver smallSet smallGet
 mysiserver_server: mysiserver.c siserver.c
 	gcc -Wall mysiserver.c siserver.c -o mysiserver
 

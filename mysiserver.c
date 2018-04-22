@@ -1,37 +1,38 @@
-#include "cloud.h"
-#define FILELENGTH 100 * 1024
+#include "siserver.h"
 
-struct FileStore {
-	char fileName[FILE_NAME_LENGTH];
-	char fileContent[FILELENGTH];
-	struct FileStore * next;
+
+struct VariableStore {
+	char variableName[VAR_MAX];
+	char value[VALUE_MAX];
+	struct VariableStore * next;
 };
 
-typedef struct FileStore FileNode;
+typedef struct VariableStore VariableNode;
 
-FileNode * filehead;
-void addFile(char* fileName, char* fileContent) {
-	FileNode * p = filehead;
+VariableNode * varhead;
+
+void addVariable(char* variableName, char* value) {
+	VariableNode * p = varhead;
 	while (p->next != NULL) {
-		if (strcmp(p->next->fileName, fileName) == 0) {
+		if (strcmp(p->next->variableName, variableName) == 0) {
 			break;
 		}
 		p = p->next;
 	}
 	if (p->next == NULL) {
-		FileNode * newNode = (FileNode *) malloc(sizeof(FileNode));
-		strcpy(newNode->fileName, fileName);
-		strcpy(newNode->fileContent, fileContent);
+		VariableNode * newNode = (VariableNode *) malloc(sizeof(VariableNode));
+		strcpy(newNode->variableName, variableName);
+		strcpy(newNode->value, value);
 		newNode->next = NULL;
 		p->next = newNode;
 	} else {
-		strcpy(p->next->fileContent, fileContent);
+		strcpy(p->next->value, value);
 	}
 }
-int getFile(char* fileName, char * content) {
-	FileNode * p = filehead;
+int getVariable(char* variableName, char * content) {
+	VariableNode * p = varhead;
 	while (p->next != NULL) {
-		if (strcmp(p->next->fileName, fileName) == 0) {
+		if (strcmp(p->next->variableName, variableName) == 0) {
 			break;
 		}
 		p = p->next;
@@ -39,15 +40,15 @@ int getFile(char* fileName, char * content) {
 	if (p->next == NULL) {
 		return ERROR;
 	} else {
-		strcpy(content, p->next->fileContent);
+		strcpy(content, p->next->value);
 		return SUCCESS;
 	}
 }
 
-int delFile(char* fileName) {
-	FileNode * p = filehead;
+int delVariable(char* variableName) {
+	VariableNode * p = varhead;
 	while (p->next != NULL) {
-		if (strcmp(p->next->fileName, fileName) == 0) {
+		if (strcmp(p->next->variableName, variableName) == 0) {
 			break;
 		}
 		p = p->next;
@@ -55,7 +56,7 @@ int delFile(char* fileName) {
 	if (p->next == NULL) {
 		return ERROR;
 	} else {
-		FileNode * del = p->next;
+		VariableNode * del = p->next;
 		p->next = p->next->next;
 		free(del);
 		return SUCCESS;
@@ -63,20 +64,21 @@ int delFile(char* fileName) {
 }
 
 /**
- * recieve file from client
+ * set variable from client
  */
-int put(HEADER header, int sock) {
-	char fileName[FILE_NAME_LENGTH];
-	read_n(sock, fileName, FILE_NAME_LENGTH);
-	printf("Filename = %s\n", fileName);
-	unsigned int fileSize;
-	read_n(sock, (char*) &fileSize, 4);
-	char* buffer = (char*) malloc(sizeof(char) * fileSize);
-	memset(buffer, 0, fileSize);
-	read_n(sock, buffer, fileSize);
-	addFile(fileName, buffer);
+int set(int secretKey, int sock) {
+	char variableName[VAR_MAX];
+	read_n(sock, variableName, VAR_MAX);
+	printf("variableName = %s\n", variableName);
+	unsigned int value_size;
+	read_n(sock, (char*) &value_size, sizeof(int));
+	value_size = ntohl (value_size);
+	char* buffer = (char*) malloc(sizeof(char) * value_size);
+	memset(buffer, 0, value_size);
+	read_n(sock, buffer, value_size);
+	addVariable(variableName, buffer);
 	unsigned int status;
-	if (header.secretKey != key) {
+	if (secretKey != key) {
 		status = ERROR;
 	} else {
 		status = SUCCESS;
@@ -87,20 +89,20 @@ int put(HEADER header, int sock) {
 }
 
 /**
- * send file to client
+ * pass the value of a variable to client
  */
-int get(HEADER header, int sock) {
-	char fileName[FILE_NAME_LENGTH];
-	read_n(sock, fileName, FILE_NAME_LENGTH);
-	printf("Filename = %s\n", fileName);
-	if (header.secretKey != key) {
+int get(int secretKey, int sock) {
+	char variableName[VAR_MAX];
+	read_n(sock, variableName, VAR_MAX);
+	printf("variableName = %s\n", variableName);
+	if (secretKey != key) {
 		unsigned int status = ERROR;
 		write_n(sock, (char*) &status, sizeof(status));
 		return ERROR;
 	}
-	char fileContent[FILELENGTH];
-	memset(fileContent, 0, FILELENGTH);
-	int ret = getFile(fileName, fileContent);
+	char value[VALUE_MAX];
+	memset(value, 0, VALUE_MAX);
+	int ret = getVariable(variableName, value);
 	if (ret == ERROR) { // file do not exsit
 		unsigned int status = ERROR;
 		write_n(sock, (char*) &status, sizeof(status));
@@ -108,9 +110,9 @@ int get(HEADER header, int sock) {
 	} else {
 		unsigned int returnStatus = SUCCESS;
 		write_n(sock, (char*) &returnStatus, sizeof(returnStatus));
-		unsigned int size = strlen(fileContent) + 1;
+		unsigned int size = strlen(value) + 1;
 		write_n(sock, (char*) &size, sizeof(size));
-		write_n(sock, fileContent, size);
+		write_n(sock, value, size);
 		return SUCCESS;
 	}
 }
@@ -118,17 +120,18 @@ int get(HEADER header, int sock) {
 /**
  * delete file
  */
+/*
 int removefile(HEADER header, int sock) {
-	char fileName[FILE_NAME_LENGTH];
-	read_n(sock, fileName, FILE_NAME_LENGTH);
-	printf("Filename = %s\n", fileName);
+	char variableName[VAR_MAX];
+	read_n(sock, variableName, VAR_MAX);
+	printf("variableName = %s\n", variableName);
 	if (header.secretKey != key) {
 		unsigned int status = ERROR;
 		write_n(sock, (char*) &status, sizeof(status));
 		return ERROR;
 	}
 	unsigned int status;
-	if (delFile(fileName) == SUCCESS) { // delete file successfully
+	if (delVariable(variableName) == SUCCESS) { // delete file successfully
 		status = SUCCESS;
 	} else {
 		status = ERROR;
@@ -141,8 +144,9 @@ int removefile(HEADER header, int sock) {
  * list cuurent file list
  * send to client
  */
+/*
 int list(HEADER header, int sock) {
-	printf("Filename = NONE\n");
+	printf("variableName = NONE\n");
 	unsigned int status;
 	if (header.secretKey != key) {
 		status = ERROR;
@@ -151,9 +155,9 @@ int list(HEADER header, int sock) {
 	}
 	char buffer[10000];
 	memset(buffer, 0, 10000);
-	FileNode * p = filehead;
+	VariableNode * p = varhead;
 	while (p->next != NULL) {
-		strcat(buffer, p->next->fileName);
+		strcat(buffer, p->next->variableName);
 		strcat(buffer, "\n");
 		p = p->next;
 	}
@@ -165,35 +169,38 @@ int list(HEADER header, int sock) {
 	write_n(sock, buffer, size);
 	return 0;
 }
-
+*/
 void message_echo(int socket_fd) {
-	HEADER header;
+	int secretKey;
+	short type;
 
-	memset(&header, 0, sizeof(header));
-	read_n(socket_fd, (char*) &header, sizeof(header));
+	read_n(socket_fd, &secretKey, sizeof(int));
+	read_n(socket_fd, &type, sizeof(short));
+	secretKey 	= ntohl (secretKey);
+	type 		= ntohs (type);
 
-	printf("Secret Key = %d\nRequest Type = %s\n", header.secretKey,
-			getStringType(header.type));
-	if (header.type == LIST) {
-		if (list(header, socket_fd) != -1) {
+	printf("Secret Key = %d\nRequest Type = %s\n", secretKey,
+			getConnectionType(type));
+	if (type == SET) {
+		if (set(secretKey, socket_fd) != -1) {
 			printf("Operation Status = success\n--------------------------\n");
 		} else {
 			printf("Operation Status = error\n--------------------------\n");
 		}
-	} else if (header.type == PUT) {
-		if (put(header, socket_fd) != -1) {
+	} else if (type == GET) {
+		if (get(secretKey, socket_fd) != -1) {
 			printf("Operation Status = success\n--------------------------\n");
 		} else {
 			printf("Operation Status = error\n--------------------------\n");
 		}
-	} else if (header.type == GET) {
-		if (get(header, socket_fd) != -1) {
+	} else if (type == DIGEST) {
+		if (get(secretKey, socket_fd) != -1) {
 			printf("Operation Status = success\n--------------------------\n");
 		} else {
 			printf("Operation Status = error\n--------------------------\n");
 		}
-	} else if (header.type == DEL) {
-		if (removefile(header, socket_fd) != -1) {
+	} else if (type == RUN) {
+		if (get(secretKey, socket_fd) != -1) {
 			printf("Operation Status = success\n--------------------------\n");
 		} else {
 			printf("Operation Status = error\n--------------------------\n");
@@ -207,9 +214,9 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "usage: %s <port> <secretKey>\n", argv[0]);
 		return -1;
 	}
-	FileNode filenode;
-	filenode.next = NULL;
-	filehead = &filenode;
+	VariableNode variableNode;
+	variableNode.next = NULL;
+	varhead = &variableNode;
 	int port = atoi(argv[1]);
 	key = atoi(argv[2]);
 	int listenfd, connfd;

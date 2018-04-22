@@ -1,6 +1,6 @@
 #include "siserver.h"
 
-char * getStringType(int type) {
+char * getConnectionType(int type) {
 	if (type == GET) {
 		return "get";
 	} else if (type == SET) {
@@ -16,7 +16,7 @@ char * getStringType(int type) {
  This function writes "n" characters to the server.
  */
 
-int write_n(int fd, (void*) qptr, int n_bytes) {
+int write_n(int fd, void *qptr, int n_bytes) {
 	int n_left, n_written;
 	n_left = n_bytes;
 	while (n_left > 0) {
@@ -34,7 +34,7 @@ int write_n(int fd, (void*) qptr, int n_bytes) {
  This function reads "n" characters from the server.
  */
 
-int read_n(int fd, char *ptr, int n_bytes) {
+int read_n(int fd, void *ptr, int n_bytes) {
 	int n_left, n_read;
 	n_left = n_bytes;
 	while (n_left > 0) {
