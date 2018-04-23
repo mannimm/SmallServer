@@ -1,6 +1,10 @@
 #include "siserver.h"
 
 
+char server_padding[3];
+unsigned int status;
+
+
 struct VariableStore {
 	char variableName[VAR_MAX];
 	char value[VALUE_MAX];
@@ -68,8 +72,6 @@ int delVariable(char* variableName) {
  */
 int set(int secretKey, int sock) {
 	char variableName[VAR_MAX];
-	char server_padding[3];
-	unsigned int status;
 	char* buffer;
 
 	if (secretKey != key) {
@@ -104,10 +106,11 @@ int get(int secretKey, int sock) {
 	char variableName[VAR_MAX];
 	
 	if (secretKey != key) {
-		unsigned int status = ERROR;
-		write_n(sock, (char*) &status, sizeof(status));
+		status = ERROR;
 		return ERROR;
 	}
+	write_n(sock, (char*) &status, sizeof(status));
+	write_n(sock, (char*) &status, strlen(server_padding));
 
 	read_n(sock, variableName, VAR_MAX);
 	printf("variableName = %s\n", variableName);
