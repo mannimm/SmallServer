@@ -136,6 +136,7 @@ int smallGet(char *MachineName, int Port, int SecretKey,
 		read_n(socket_fd, &value_size, sizeof(short));
 		value_size = ntohs (value_size);
 		read_n(socket_fd, (char*) &value, value_size);
+		printf("value is: %s\n",value);
 		printf("Success\n");
 	
 	} else if (status == ERROR) {

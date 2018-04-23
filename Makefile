@@ -1,6 +1,6 @@
 all: mysiserver smallSet smallGet siserver
 mysiserver: mysiserver.c siserver.c
-	gcc -Wall mysiserver.c siserver.c -o mysiserver
+	gcc -Wall mysiserver.c siserver.c -o smalld
 
 
 smallGet: smallGet.c siserver.c
@@ -9,4 +9,4 @@ smallGet: smallGet.c siserver.c
 smallSet: smallSet.c siserver.c
 	gcc -Wall smallSet.c siserver.c -o smallSet
 
-clean: -rm -f *.o
+clean: -rm -f *.o smallSet smallGet smalld

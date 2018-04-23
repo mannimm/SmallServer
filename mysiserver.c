@@ -91,7 +91,7 @@ int set(int secretKey, int sock) {
 		value_size = ntohl (value_size);
 		buffer = (char*) malloc(sizeof(char) * value_size);
 		memset(buffer, 0, value_size);
-		read_n(sock, buffer, value_size);
+		read_n(sock, (char*) buffer, value_size);
 		addVariable(variableName, buffer);
 	}
 
@@ -113,7 +113,7 @@ int get(int secretKey, int sock) {
 	write_n(sock, (char*) &status, strlen(server_padding));
 
 	read_n(sock, variableName, VAR_MAX);
-	printf("variableName = %s\n", variableName);
+	printf("variableName = %s", variableName);
 	char value[VALUE_MAX];
 	memset(value, 0, VALUE_MAX);
 	int ret = getVariable(variableName, value);
@@ -123,6 +123,7 @@ int get(int secretKey, int sock) {
 		return ERROR;
 	} else {
 		unsigned int returnStatus = SUCCESS;
+		printf (" : %s\n", value);
 		write_n(sock, (char*) &returnStatus, sizeof(returnStatus));
 		unsigned int size = strlen(value) + 1;
 		write_n(sock, (char*) &size, sizeof(size));
