@@ -5,9 +5,9 @@ char * getConnectionType(int type) {
 		return "get";
 	} else if (type == SET) {
 		return "set";
-	} /*else if (type == DIGEST) {
+	} else if (type == DIGEST) {
 		return "del";
-	} */else {
+	} else {
 		return "list";
 	}
 }
@@ -89,7 +89,7 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 	read_n(socket_fd, (char*) &status, sizeof(status));
 	Close(socket_fd);
 	if (status == SUCCESS) {
-		printf("Success\n");
+		//printf("Success\n");
 		return SUCCESS;
 	} else if (status == ERROR) {
 		printf("Error\n");

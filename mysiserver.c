@@ -177,7 +177,7 @@ void message_echo(int socket_fd) {
 
 	read_n(socket_fd, &secretKey, sizeof(int));
 	read_n(socket_fd, &type, sizeof(short));
-	//read_n(socket_fd, &pad, sizeof(short));
+	read_n(socket_fd, &pad, sizeof(short));
 	secretKey 	= ntohl (secretKey);
 	type 		= ntohs (type);
 
@@ -196,13 +196,13 @@ void message_echo(int socket_fd) {
 			printf("Operation Status = error\n--------------------------\n");
 		}
 	} else if (type == DIGEST) {
-		if (get(secretKey, socket_fd) != -1) {
+		if (set(secretKey, socket_fd) != -1) {
 			printf("Operation Status = success\n--------------------------\n");
 		} else {
 			printf("Operation Status = error\n--------------------------\n");
 		}
 	} else if (type == RUN) {
-		if (get(secretKey, socket_fd) != -1) {
+		if (set(secretKey, socket_fd) != -1) {
 			printf("Operation Status = success\n--------------------------\n");
 		} else {
 			printf("Operation Status = error\n--------------------------\n");
