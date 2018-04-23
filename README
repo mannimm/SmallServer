@@ -1,5 +1,5 @@
 CS485 spring2015
-Group members: Sen Lin
+Group members: Manni Mashaee, Yankun Wang
 
 use ‘make’ to generate a cloud server
 
@@ -7,9 +7,9 @@ FILES:
 README	this file
 cloud.c
 cloud.h
-mcdel.c
+mcset.c
 mcget.c
-mclist.c
-mcput.c
+mcdigest.c
+mcrun.c
 mycloud_server.c
 Makefile
