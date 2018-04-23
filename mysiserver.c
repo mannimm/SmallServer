@@ -68,23 +68,31 @@ int delVariable(char* variableName) {
  */
 int set(int secretKey, int sock) {
 	char variableName[VAR_MAX];
-
-	read_n(sock, variableName, VAR_MAX);
-	printf("variableName = %s\n", variableName);
-	unsigned int value_size;
-	read_n(sock, (char*) &value_size, sizeof(int));
-	value_size = ntohl (value_size);
-	char* buffer = (char*) malloc(sizeof(char) * value_size);
-	memset(buffer, 0, value_size);
-	read_n(sock, buffer, value_size);
-	addVariable(variableName, buffer);
+	char server_padding[3];
 	unsigned int status;
+	char* buffer;
+
 	if (secretKey != key) {
 		status = ERROR;
 	} else {
 		status = SUCCESS;
 	}
 	write_n(sock, (char*) &status, sizeof(status));
+	write_n(sock, (char*) &status, strlen(server_padding));
+
+
+	if ( status == SUCCESS) {
+		read_n(sock, variableName, VAR_MAX);
+		printf("variableName = %s\n", variableName);
+		unsigned int value_size;
+		read_n(sock, (char*) &value_size, sizeof(int));
+		value_size = ntohl (value_size);
+		buffer = (char*) malloc(sizeof(char) * value_size);
+		memset(buffer, 0, value_size);
+		read_n(sock, buffer, value_size);
+		addVariable(variableName, buffer);
+	}
+
 	free(buffer);
 	return status;
 }
@@ -94,13 +102,15 @@ int set(int secretKey, int sock) {
  */
 int get(int secretKey, int sock) {
 	char variableName[VAR_MAX];
-	read_n(sock, variableName, VAR_MAX);
-	printf("variableName = %s\n", variableName);
+	
 	if (secretKey != key) {
 		unsigned int status = ERROR;
 		write_n(sock, (char*) &status, sizeof(status));
 		return ERROR;
 	}
+
+	read_n(sock, variableName, VAR_MAX);
+	printf("variableName = %s\n", variableName);
 	char value[VALUE_MAX];
 	memset(value, 0, VALUE_MAX);
 	int ret = getVariable(variableName, value);

@@ -69,7 +69,7 @@ int smallSet(char *MachineName, int Port, int SecretKey,
     strncpy (variableName, VariableName, sizeof(variableName));			// Read variable name from argument list.
     strncpy (value, Value, sizeof(value));
 
-   	if ( (socket_fd = Open_clientfd(host, Port)) < 0 )	// Open connection to provided Host and Port.
+   	if ( (socket_fd = Open_clientfd(MachineName, Port)) < 0 )	// Open connection to provided Host and Port.
 		return(-1);
 
 	SecretKey = htonl(SecretKey);
@@ -78,27 +78,26 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 	Type = htons(Type);
 	write_n(socket_fd, &Type, sizeof(short));
 	write_n(socket_fd, &pad, sizeof(pad));
-	write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
-
-	short value_size = strlen(Value);
-	short value_size_neto = htons(value_size);
-
-	write_n(socket_fd, &value_size_neto, sizeof(short));
-	write_n(socket_fd, (char *) &value, value_size);			// Send Value over to the server.
 
 	read_n(socket_fd, (char*) &status, sizeof(status));
-	Close(socket_fd);
+	read_n(socket_fd, &server_padding, strlen(server_padding));
+	
 	if (status == SUCCESS) {
-		//printf("Success\n");
-		return SUCCESS;
+		write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
+		short value_size = strlen(Value);
+		short value_size_neto = htons(value_size);
+		write_n(socket_fd, &value_size_neto, sizeof(short));
+		write_n(socket_fd, (char *) &value, value_size);
+		//return SUCCESS;
 	} else if (status == ERROR) {
 		printf("Error\n");
-		return ERROR;
+		//return ERROR;
 	}
 
+	Close(socket_fd);
    	free(variableName);
    	free(value);
-	return -1;
+	return status;
 	
 }
 	
@@ -118,7 +117,7 @@ int smallGet(char *MachineName, int Port, int SecretKey,
     strncpy (variableName, VariableName, sizeof(variableName));			// Read variable name from argument list.
     strncpy (host, MachineName, sizeof(host));
 
-   	if ( (socket_fd = Open_clientfd(host, Port)) < 0 )	// Open connection to provided Host and Port.
+   	if ( (socket_fd = Open_clientfd(MachineName, Port)) < 0 )	// Open connection to provided Host and Port.
 		return(-1);
 
 	SecretKey = htonl(SecretKey);
@@ -127,13 +126,13 @@ int smallGet(char *MachineName, int Port, int SecretKey,
 	Type = htons(Type);
 	write_n(socket_fd, &Type, sizeof(short));
 	write_n(socket_fd, &pad, sizeof(short));
-	write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
 	
 	read_n(socket_fd, &status, sizeof(char));
-	read_n(socket_fd, &server_padding, sizeof(server_padding));
+	read_n(socket_fd, &server_padding, strlen(server_padding));
 	
 
 	if ( status == SUCCESS) {
+		write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
 		read_n(socket_fd, &value_size, sizeof(short));
 		value_size = ntohs (value_size);
 		read_n(socket_fd, (char*) &value, value_size);
