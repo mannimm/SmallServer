@@ -68,6 +68,7 @@ int delVariable(char* variableName) {
  */
 int set(int secretKey, int sock) {
 	char variableName[VAR_MAX];
+
 	read_n(sock, variableName, VAR_MAX);
 	printf("variableName = %s\n", variableName);
 	unsigned int value_size;
@@ -172,10 +173,11 @@ int list(HEADER header, int sock) {
 */
 void message_echo(int socket_fd) {
 	int secretKey;
-	short type;
+	short type, pad;
 
 	read_n(socket_fd, &secretKey, sizeof(int));
 	read_n(socket_fd, &type, sizeof(short));
+	//read_n(socket_fd, &pad, sizeof(short));
 	secretKey 	= ntohl (secretKey);
 	type 		= ntohs (type);
 

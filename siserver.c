@@ -7,16 +7,16 @@ char * getConnectionType(int type) {
 		return "set";
 	} /*else if (type == DIGEST) {
 		return "del";
-	} else {
+	} */else {
 		return "list";
-	}*/
+	}
 }
 
 /*
  This function writes "n" characters to the server.
  */
 
-int write_n(int fd, void *qptr, int n_bytes) {
+int write_n(int fd, void *ptr, int n_bytes) {
 	int n_left, n_written;
 	n_left = n_bytes;
 	while (n_left > 0) {
@@ -89,6 +89,7 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 	read_n(socket_fd, (char*) &status, sizeof(status));
 	Close(socket_fd);
 	if (status == SUCCESS) {
+		printf("Success\n");
 		return SUCCESS;
 	} else if (status == ERROR) {
 		printf("Error\n");
