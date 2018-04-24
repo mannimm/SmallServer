@@ -1,4 +1,6 @@
+//my version 5
 #include "siserver.h"
+#include "csapp.h"
 
 char * getConnectionType(int type) {
 	if (type == GET) {
@@ -30,6 +32,7 @@ int write_n(int fd, void *ptr, int n_bytes) {
 	return (n_bytes - n_left);
 }
 
+
 /*
  This function reads "n" characters from the server.
  */
@@ -59,15 +62,16 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 	short pad = 0;
 	char *host = (char *) calloc(1, 40);		
 
-    strncpy (host, MachineName, sizeof(host));		
+    strncpy (host, MachineName, (int) sizeof(host));		
     short int Type = SET;
-    char status, server_padding[3];
+    char status;
 
-    char *variableName 	= (char *) calloc(1, VAR_MAX);	// Allocate space for variable name.
-    char *value 		= (char *) calloc(1, VALUE_MAX);	// Allocate space for value.
-
-    strncpy (variableName, VariableName, sizeof(variableName));			// Read variable name from argument list.
-    strncpy (value, Value, sizeof(value));
+    char *variableName 	= malloc (VAR_MAX+1);	// Allocate space for variable name.
+    //memset (variableName, 0, VAR_MAX);
+    char *value 		= malloc (VALUE_MAX+1);	// Allocate space for value.
+    //memset (value, 0, VALUE_MAX);
+    strncpy (variableName, VariableName, VAR_MAX);			// Read variable name from argument list.
+    strncpy (value, Value, VALUE_MAX);
 
    	if ( (socket_fd = Open_clientfd(MachineName, Port)) < 0 )	// Open connection to provided Host and Port.
 		return(-1);
@@ -79,15 +83,21 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 	write_n(socket_fd, &Type, sizeof(short));
 	write_n(socket_fd, &pad, sizeof(pad));
 
-	read_n(socket_fd, (char*) &status, sizeof(status));
-	read_n(socket_fd, &server_padding, strlen(server_padding));
-	
+	read_n(socket_fd, &status, sizeof(status));
+	//read_n(socket_fd, &server_padding, strlen(server_padding));
+	status = ntohl (status);
+	printf ("status is: %d\n", status);
 	if (status == SUCCESS) {
+		printf ("var is 	: %s\n", variableName);								//FOR TEST
+		printf ("variable size befor is : %d\n", (int) strlen(variableName));	//FOR TEST
+		printf ("value is 	: %s\n", value);									//FOR TEST
+
 		write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
-		short value_size = strlen(Value);
-		short value_size_neto = htons(value_size);
-		write_n(socket_fd, &value_size_neto, sizeof(short));
-		write_n(socket_fd, (char *) &value, value_size);
+		unsigned short value_size = strlen(Value);
+		printf ("value size: %d\n", value_size);								//FOR TEST
+		unsigned short value_size_neto = htons(value_size);
+		write_n(socket_fd, &value_size_neto, sizeof(unsigned short));
+		write_n(socket_fd, (char *) value, value_size);
 		//return SUCCESS;
 	} else if (status == ERROR) {
 		printf("Error\n");
@@ -114,8 +124,8 @@ int smallGet(char *MachineName, int Port, int SecretKey,
     char *variableName 	= (char *) calloc(1, VAR_MAX);	// Allocate space for variable name.
     char *value 		= (char *) calloc(1, VALUE_MAX);	// Allocate space for value.
 
-    strncpy (variableName, VariableName, sizeof(variableName));			// Read variable name from argument list.
-    strncpy (host, MachineName, sizeof(host));
+    strncpy (variableName, VariableName, (int) sizeof(variableName));			// Read variable name from argument list.
+    strncpy (host, MachineName, (int) sizeof(host));
 
    	if ( (socket_fd = Open_clientfd(MachineName, Port)) < 0 )	// Open connection to provided Host and Port.
 		return(-1);
@@ -275,3 +285,213 @@ int Accept(int s, struct sockaddr *addr, socklen_t *addrlen) {
 		unix_error("Accept error");
 	return rc;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*********************************************************************
+ * The Rio package - robust I/O functions
+ **********************************************************************/
+/*
+ * rio_readn - robustly read n bytes (unbuffered)
+ */
+/* $begin rio_readn */
+ssize_t rio_readn(int fd, void *usrbuf, size_t n) 
+{
+    size_t nleft = n;
+    ssize_t nread;
+    char *bufp = usrbuf;
+
+    while (nleft > 0) {
+	if ((nread = read(fd, bufp, nleft)) < 0) {
+	    if (errno == EINTR) /* Interrupted by sig handler return */
+		nread = 0;      /* and call read() again */
+	    else
+		return -1;      /* errno set by read() */ 
+	} 
+	else if (nread == 0)
+	    break;              /* EOF */
+	nleft -= nread;
+	bufp += nread;
+    }
+    return (n - nleft);         /* return >= 0 */
+}
+/* $end rio_readn */
+
+/*
+ * rio_writen - robustly write n bytes (unbuffered)
+ */
+/* $begin rio_writen */
+ssize_t rio_writen(int fd, void *usrbuf, size_t n) 
+{
+    size_t nleft = n;
+    ssize_t nwritten;
+    char *bufp = usrbuf;
+
+    while (nleft > 0) {
+	if ((nwritten = write(fd, bufp, nleft)) <= 0) {
+	    if (errno == EINTR)  /* Interrupted by sig handler return */
+		nwritten = 0;    /* and call write() again */
+	    else
+		return -1;       /* errno set by write() */
+	}
+	nleft -= nwritten;
+	bufp += nwritten;
+    }
+    return n;
+}
+/* 
+ * rio_read - This is a wrapper for the Unix read() function that
+ *    transfers min(n, rio_cnt) bytes from an internal buffer to a user
+ *    buffer, where n is the number of bytes requested by the user and
+ *    rio_cnt is the number of unread bytes in the internal buffer. On
+ *    entry, rio_read() refills the internal buffer via a call to
+ *    read() if the internal buffer is empty.
+ */
+/* $begin rio_read */
+static ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n)
+{
+    int cnt;
+
+    while (rp->rio_cnt <= 0) {  /* Refill if buf is empty */
+	rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, 
+			   sizeof(rp->rio_buf));
+	if (rp->rio_cnt < 0) {
+	    if (errno != EINTR) /* Interrupted by sig handler return */
+		return -1;
+	}
+	else if (rp->rio_cnt == 0)  /* EOF */
+	    return 0;
+	else 
+	    rp->rio_bufptr = rp->rio_buf; /* Reset buffer ptr */
+    }
+
+    /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
+    cnt = n;          
+    if (rp->rio_cnt < n)   
+	cnt = rp->rio_cnt;
+    memcpy(usrbuf, rp->rio_bufptr, cnt);
+    rp->rio_bufptr += cnt;
+    rp->rio_cnt -= cnt;
+    return cnt;
+}
+/* $end rio_read */
+
+/*
+ * rio_readinitb - Associate a descriptor with a read buffer and reset buffer
+ */
+/* $begin rio_readinitb */
+void rio_readinitb(rio_t *rp, int fd) 
+{
+    rp->rio_fd = fd;  
+    rp->rio_cnt = 0;  
+    rp->rio_bufptr = rp->rio_buf;
+}
+/* $end rio_readinitb */
+
+/*
+ * rio_readnb - Robustly read n bytes (buffered)
+ */
+/* $begin rio_readnb */
+ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n) 
+{
+    size_t nleft = n;
+    ssize_t nread;
+    char *bufp = usrbuf;
+    
+    while (nleft > 0) {
+	if ((nread = rio_read(rp, bufp, nleft)) < 0) 
+            return -1;          /* errno set by read() */ 
+	else if (nread == 0)
+	    break;              /* EOF */
+	nleft -= nread;
+	bufp += nread;
+    }
+    return (n - nleft);         /* return >= 0 */
+}
+/* $end rio_readnb */
+
+/* 
+ * rio_readlineb - robustly read a text line (buffered)
+ */
+/* $begin rio_readlineb */
+ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) 
+{
+    int n, rc;
+    char c, *bufp = usrbuf;
+
+    for (n = 1; n < maxlen; n++) { 
+        if ((rc = rio_read(rp, &c, 1)) == 1) {
+	    *bufp++ = c;
+	    if (c == '\n') {
+                n++;
+     		break;
+            }
+	} else if (rc == 0) {
+	    if (n == 1)
+		return 0; /* EOF, no data read */
+	    else
+		break;    /* EOF, some data was read */
+	} else
+	    return -1;	  /* Error */
+    }
+    *bufp = 0;
+    return n-1;
+}
+/* $end rio_readlineb */
+
+/**********************************
+ * Wrappers for robust I/O routines
+ **********************************/
+ssize_t Rio_readn(int fd, void *ptr, size_t nbytes) 
+{
+    ssize_t n;
+  
+    if ((n = rio_readn(fd, ptr, nbytes)) < 0)
+	unix_error("Rio_readn error");
+    return n;
+}
+
+void Rio_writen(int fd, void *usrbuf, size_t n) 
+{
+    if (rio_writen(fd, usrbuf, n) != n)
+	unix_error("Rio_writen error");
+}
+
+void Rio_readinitb(rio_t *rp, int fd)
+{
+    rio_readinitb(rp, fd);
+} 
+
+ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n) 
+{
+    ssize_t rc;
+
+    if ((rc = rio_readnb(rp, usrbuf, n)) < 0)
+	unix_error("Rio_readnb error");
+    return rc;
+}
+
+ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) 
+{
+    ssize_t rc;
+
+    if ((rc = rio_readlineb(rp, usrbuf, maxlen)) < 0)
+	unix_error("Rio_readlineb error");
+    return rc;
+} 
+

@@ -1,8 +1,5 @@
 #include "siserver.h"
-
-
-char server_padding[3];
-unsigned int status;
+#include "csapp.h"
 
 
 struct VariableStore {
@@ -79,20 +76,25 @@ int set(int secretKey, int sock) {
 	} else {
 		status = SUCCESS;
 	}
-	write_n(sock, (char*) &status, sizeof(status));
-	write_n(sock, (char*) &status, strlen(server_padding));
+	status = htonl (status);
+	write_n(sock, &status, sizeof(status));
+	//write_n(sock, (char*) &status, strlen(server_padding));
 
 
 	if ( status == SUCCESS) {
 		read_n(sock, variableName, VAR_MAX);
-		printf("variableName = %s\n", variableName);
-		unsigned int value_size;
-		read_n(sock, (char*) &value_size, sizeof(int));
-		value_size = ntohl (value_size);
-		buffer = (char*) malloc(sizeof(char) * value_size);
-		memset(buffer, 0, value_size);
-		read_n(sock, (char*) buffer, value_size);
+		printf("variableName = %s : ", variableName);
+		unsigned short value_size =0;
+		read_n(sock, &value_size, sizeof(unsigned short));
+		value_size = ntohs (value_size);
+		printf ("value size: %d ", value_size);
+
+		buffer = malloc (VALUE_MAX+1);
+		//memset(buffer, 0, value_size);
+		read_n(sock, buffer, value_size+1);
+		printf ("var size: %d\tvar: %s\n", (int) strlen(variableName), variableName);
 		addVariable(variableName, buffer);
+
 	}
 
 	free(buffer);

@@ -27,6 +27,8 @@
 #define VALUE_MAX 100
 #define VAR_MAX 15
 
+char server_padding[3];
+int status;
 unsigned int key;
 
 #define LISTENQ  1024  /* Second argument to listen() */
