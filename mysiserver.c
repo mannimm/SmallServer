@@ -77,14 +77,14 @@ int set(int secretKey, int sock) {
 	} else {
 		status = SUCCESS;
 	}
-	// status = htonl (status);
-	// write_n(sock, &status, sizeof(status));
-	// //write_n(sock, (char*) &status, strlen(server_padding));
+	//status = htonl (status);
+	write_n(sock, (char *) &status, sizeof(int8_t));
+	write_n(sock, (char*) server_padding, strlen(server_padding));
 
 
-	// if ( status == SUCCESS) {
+	if ( status == SUCCESS) {
 		read_n (sock, variableName, 15);
-		read_n (sock, (char *) &value_size, 4);
+		read_n (sock, (char *) &value_size, sizeof(unsigned short));
 
 		buffer = (char *) malloc (value_size);
 		memset(buffer, 0, value_size);
@@ -92,19 +92,14 @@ int set(int secretKey, int sock) {
 		read_n (sock, buffer, value_size);
 
 
-		printf("variableName = %s : ", variableName);
-		
-
-		printf ("value size: %d ", value_size);
-
-		
-		printf ("value: %s\n", buffer);
+		printf("variableName = %s", variableName);
+		printf (" : %s\n", buffer);
 		addVariable(variableName, buffer);
 
-	//}
+	}
 
 	free(buffer);
-	return 0;
+	return status;
 }
 
 /**
@@ -112,33 +107,35 @@ int set(int secretKey, int sock) {
  */
 int get(int secretKey, int sock) {
 	char variableName[VAR_MAX];
+	unsigned short size;
 	
 	if (secretKey != key) {
 		status = ERROR;
 		return ERROR;
 	}
-	write_n(sock, (char*) &status, sizeof(status));
-	write_n(sock, (char*) &status, strlen(server_padding));
-
 	read_n(sock, variableName, VAR_MAX);
-	printf("variableName = %s", variableName);
+	printf("variableName = %s\n", variableName);
 	char value[VALUE_MAX];
 	memset(value, 0, VALUE_MAX);
 	int ret = getVariable(variableName, value);
 	if (ret == ERROR) { // file do not exsit
-		unsigned int status = ERROR;
-		write_n(sock, (char*) &status, sizeof(status));
-		return ERROR;
+		status = ERROR;
 	} else {
-		unsigned int returnStatus = SUCCESS;
-		printf (" : %s\n", value);
-		write_n(sock, (char*) &returnStatus, sizeof(returnStatus));
-		unsigned int size = strlen(value) + 1;
-		write_n(sock, (char*) &size, sizeof(size));
-		write_n(sock, value, size);
-		return SUCCESS;
+		status = SUCCESS;
 	}
+
+	write_n(sock, (char*) &status, sizeof(int8_t));
+	write_n(sock, (char*) server_padding, 3);
+	if (status == SUCCESS){
+		size = strlen(value);
+		write_n(sock, (char*) &size, sizeof(unsigned short));
+		write_n(sock, value, size);
+	}
+
+	return status;	
 }
+
+
 
 /**
  * delete file
@@ -192,6 +189,8 @@ int list(HEADER header, int sock) {
 	write_n(sock, buffer, size);
 	return 0;
 }
+
+
 */
 void message_echo(int socket_fd) {
 	int secretKey;
