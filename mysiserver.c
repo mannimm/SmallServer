@@ -70,35 +70,41 @@ int delVariable(char* variableName) {
 int set(int secretKey, int sock) {
 	char variableName[VAR_MAX];
 	char* buffer;
+	unsigned int value_size;
 
 	if (secretKey != key) {
 		status = ERROR;
 	} else {
 		status = SUCCESS;
 	}
-	status = htonl (status);
-	write_n(sock, &status, sizeof(status));
-	//write_n(sock, (char*) &status, strlen(server_padding));
+	// status = htonl (status);
+	// write_n(sock, &status, sizeof(status));
+	// //write_n(sock, (char*) &status, strlen(server_padding));
 
 
-	if ( status == SUCCESS) {
-		read_n(sock, variableName, VAR_MAX);
+	// if ( status == SUCCESS) {
+		read_n (sock, variableName, 15);
+		read_n (sock, (char *) &value_size, 4);
+
+		buffer = (char *) malloc (value_size);
+		memset(buffer, 0, value_size);
+		
+		read_n (sock, buffer, value_size);
+
+
 		printf("variableName = %s : ", variableName);
-		unsigned short value_size =0;
-		read_n(sock, &value_size, sizeof(unsigned short));
-		value_size = ntohs (value_size);
+		
+
 		printf ("value size: %d ", value_size);
 
-		buffer = malloc (VALUE_MAX+1);
-		//memset(buffer, 0, value_size);
-		read_n(sock, buffer, value_size+1);
-		printf ("var size: %d\tvar: %s\n", (int) strlen(variableName), variableName);
+		
+		printf ("value: %s\n", buffer);
 		addVariable(variableName, buffer);
 
-	}
+	//}
 
 	free(buffer);
-	return status;
+	return 0;
 }
 
 /**

@@ -1,4 +1,4 @@
-//my version 5
+//my version 7
 #include "siserver.h"
 #include "csapp.h"
 
@@ -58,7 +58,8 @@ int read_n(int fd, void *ptr, int n_bytes) {
 int smallSet(char *MachineName, int Port, int SecretKey,
 			char *VariableName, char* Value, int dataLength) {
 
-	int socket_fd;	
+	int socket_fd;
+	unsigned int value_size;
 	short pad = 0;
 	char *host = (char *) calloc(1, 40);		
 
@@ -83,31 +84,32 @@ int smallSet(char *MachineName, int Port, int SecretKey,
 	write_n(socket_fd, &Type, sizeof(short));
 	write_n(socket_fd, &pad, sizeof(pad));
 
-	read_n(socket_fd, &status, sizeof(status));
-	//read_n(socket_fd, &server_padding, strlen(server_padding));
-	status = ntohl (status);
-	printf ("status is: %d\n", status);
-	if (status == SUCCESS) {
-		printf ("var is 	: %s\n", variableName);								//FOR TEST
-		printf ("variable size befor is : %d\n", (int) strlen(variableName));	//FOR TEST
-		printf ("value is 	: %s\n", value);									//FOR TEST
+	// read_n(socket_fd, &status, sizeof(status));
+	// //read_n(socket_fd, &server_padding, strlen(server_padding));
+	// status = ntohl (status);
+	//printf ("status is: %d\n", status); //FOR TEST
+	value_size = strlen(value);
+	//if (status == SUCCESS) {
+		printf ("var is : %s\n", variableName);								//FOR TEST
+		printf ("variable size is : %d\n", (int) strlen(variableName));	//FOR TEST
+		printf ("value is : %s\n", value);									//FOR TEST
 
-		write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
-		unsigned short value_size = strlen(Value);
+		write_n (socket_fd, variableName, VAR_MAX);		// Send VariableName over to the server.
+		write_n (socket_fd, &value_size, sizeof(value_size));
+		write_n (socket_fd, value, value_size);
+
+
 		printf ("value size: %d\n", value_size);								//FOR TEST
-		unsigned short value_size_neto = htons(value_size);
-		write_n(socket_fd, &value_size_neto, sizeof(unsigned short));
-		write_n(socket_fd, (char *) value, value_size);
 		//return SUCCESS;
-	} else if (status == ERROR) {
-		printf("Error\n");
-		//return ERROR;
-	}
+	// } else if (status == ERROR) {
+	// 	printf("Error\n");
+	// 	//return ERROR;
+	// }
 
 	Close(socket_fd);
    	free(variableName);
    	free(value);
-	return status;
+	return -1;
 	
 }
 	
@@ -145,7 +147,7 @@ int smallGet(char *MachineName, int Port, int SecretKey,
 		write_n(socket_fd, (char* ) variableName, VAR_MAX);		// Send VariableName over to the server.
 		read_n(socket_fd, &value_size, sizeof(short));
 		value_size = ntohs (value_size);
-		read_n(socket_fd, (char*) &value, value_size);
+		read_n(socket_fd, (char*) value, value_size);
 		printf("value is: %s\n",value);
 		printf("Success\n");
 	
